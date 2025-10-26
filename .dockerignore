@@ -1,0 +1,12 @@
+#ignora esses arquivos na passagem pro docker
+node_modules
+build
+dist
+.next
+.vscode
+.git
+.gitignore
+.env
+npm-debug.log
+.DS_Store
+coverage

@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend-nextjs.Dockerfile
+    container_name: frontend_container
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - BACKEND_URL=http://backend:3000
+    networks:
+      - app-network
+    depends_on:
+      - backend
+  
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: ../docker/node-service.Dockerfile
+      args:
+        - SERVICE_PORT=3000
+    container_name: backend_container
+    ports:
+      - "3000:3000"
+    environment:
+      URL_ESPACOS: http://espacos:3001
+      URL_RESERVAS: http://reservas:3002
+      URL_PAGAMENTOS: http://pagamentos:3003
+    depends_on:
+      - bd
+      - espacos
+      - reservas
+      - pagamentos
+    networks:
+      - app-network
+      - bd-network
+      - services-network
+
+  espacos:
+    build: 
+      context: ./services/spaces
+      dockerfile: ../../docker/node-service.Dockerfile
+      args:
+        - SERVICE_PORT=3001
+    container_name: spaces_container
+    expose:
+      - "3001"
+    networks:
+      - services-network
+  
+  reservas:
+    build: 
+      context: ./services/reserves
+      dockerfile: ../../docker/node-service.Dockerfile
+      args:
+        - SERVICE_PORT=3002
+    container_name: reserves_container
+    expose:
+      - "3002"
+    networks:
+      - services-network
+
+  pagamentos:
+    build: 
+      context: ./services/payments
+      dockerfile: ../../docker/node-service.Dockerfile
+      args:
+        - SERVICE_PORT=3003
+    container_name: payments_container
+    expose:
+      - "3003"
+    networks:
+      - services-network
+
+  bd:
+    image: mysql:8.0
+    container_name: bando_de_dados_mysql
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - MYSQL_ROOT_PASSWORD=secret
+      - MYSQL_DATABASE=app_db
+    networks:
+      - bd-network
+
+networks:
+  app-network:
+    driver: bridge
+  bd-network:
+    driver: bridge
+  services-network:
+    driver: bridge
+        
+volumes:
+  db_data:    

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es2020",                /* Versão do JavaScript de saída */
+    "module": "commonjs",              /* Sistema de módulos */
+    "rootDir": "./src",                /* Diretório de arquivos de entrada */
+    "outDir": "./dist",                /* Diretório de saída da compilação (dist) */
+    "esModuleInterop": true,           /* Permite importação de módulos ES6 em CommonJS */
+    "forceConsistentCasingInFileNames": true, /* Exige consistência no nome de arquivos */
+    "strict": true,                    /* Ativa todas as verificações rigorosas */
+    "skipLibCheck": true               /* Pula a verificação de tipo em arquivos de declaração */
+  },
+  "include": ["src/**/*"]             /* DIZ AO TSC PARA PROCURAR AQUI: Inclui todos os arquivos .ts na pasta src */
+}
