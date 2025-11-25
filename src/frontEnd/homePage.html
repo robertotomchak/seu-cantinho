@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Seu cantinho</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="scripts/authScripts.js"></script>
+  <script src="scripts/listeners.js"></script>
+  <script src="scripts/logic.js"></script>
+</head>
+<body>
+  
+  <header>
+
+    <img src="img/logo.png" width="128" height="128" alt="logo">
+
+    <nav>
+      <button id="btnCadastrarEspaco" onclick="mostrarSecao('sec-cadastroEspacos')">Cadastrar espaço</button>
+      <button onclick="mostrarSecao('sec-reservaEspacos')">Reservar um espaço</button>
+      <button onclick="mostrarSecao('sec-reservas')">Reservas</button>
+      <button onclick="mostrarSecao('sec-pagamentos')">Pagamentos</button>
+    </nav>
+
+    <nav>
+      <button onclick="mostrarSecao('sec-login')" id="loginName" >Login</button>
+    </nav>
+
+  </header>
+
+
+
+  <main>
+    <!-- ESPAÇOS -->
+    <section id="sec-cadastroEspacos" class="secao ativa">
+      <h2>Espaços</h2>
+
+      <!-- Formulário para criar/editar espaço -->
+      <form id="form-espaco">
+        <label>
+          Nome do espaço:
+          <input type="text" name="nome" required />
+        </label>
+        <label>
+          Capacidade:
+          <input type="number" name="capacidade" min="1" required />
+        </label>
+        <label>
+          Localização:
+          <input type="text" name="localizacao" />
+        </label>
+        <button type="submit">Salvar Espaço</button>
+      </form>
+
+      <!-- Tabela para listar espaços -->
+      <h3>Lista de espaços</h3>
+      <button id="btn-carregar-espacos">Carregar espaços</button>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Capacidade</th>
+            <th>Localização</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-espacos">
+          <!-- Linhas preenchidas via JS -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- RESERVAS -->
+    <section id="sec-reservas" class="secao">
+      <h2>Reservas</h2>
+
+      <form id="form-reserva">
+        <label>
+          ID do espaço:
+          <input type="number" name="espaco_id" required />
+        </label>
+        <label>
+          ID do usuário:
+          <input type="number" name="usuario_id" required />
+        </label>
+        <label>
+          Data e hora de início:
+          <input type="datetime-local" name="inicio" required />
+        </label>
+        <label>
+          Data e hora de fim:
+          <input type="datetime-local" name="fim" required />
+        </label>
+        <button type="submit">Salvar Reserva</button>
+      </form>
+
+      <h3>Lista de reservas</h3>
+      <button id="btn-carregar-reservas">Carregar reservas</button>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Espaço</th>
+            <th>Usuário</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-reservas">
+          <!-- Preenchido via JS -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- PAGAMENTOS -->
+    <section id="sec-pagamentos" class="secao">
+      <h2>Pagamentos</h2>
+
+      <form id="form-pagamento">
+        <label>
+          ID da reserva:
+          <input type="number" name="reserva_id" required />
+        </label>
+        <label>
+          Valor:
+          <input type="number" name="valor" step="0.01" required />
+        </label>
+        <label>
+          Método:
+          <select name="metodo" required>
+            <option value="cartao">Cartão</option>
+            <option value="pix">PIX</option>
+            <option value="boleto">Boleto</option>
+          </select>
+        </label>
+        <button type="submit">Registrar Pagamento</button>
+      </form>
+
+      <h3>Lista de pagamentos</h3>
+      <button id="btn-carregar-pagamentos">Carregar pagamentos</button>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Reserva</th>
+            <th>Valor</th>
+            <th>Método</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-pagamentos">
+          <!-- Preenchido via JS -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- LOGIN -->
+    <section id="sec-login" class="secao">
+      <h2>Login</h2>
+
+      <form id="form-login">
+        <label>
+          E-mail:
+          <input type="email" name="email" id="login-email" required>
+        </label>
+
+        <label>
+          Senha:
+          <input type="password" name="senha" id="login-senha" required>
+        </label>
+
+        <button type="button" onclick="sendLogin()">Entrar</button>
+      </form>
+
+      <p id="login-erro" style="color: #590004; font-weight: bold; display: none;">
+        Usuário ou senha incorretos.
+      </p>
+
+      <p>Ainda não tem conta? <a href="#" onclick="mostrarSecao('sec-signup')">Cadastre-se</a></p>
+
+    </section>
+
+    <!-- PERFIL -->
+    <section id="sec-perfil" class="secao">
+      <h2>Seu perfil</h2>
+
+      <form id="form-login">
+        <label>
+          Nome:
+        </label>
+
+        <label>
+          ID:
+        </label>
+
+        <button type="button" onclick="logout()">Logout</button>
+      </form>
+
+    </section>
+
+    <!-- CADASTRO -->
+    <section id="sec-signup" class="secao">
+      <h2>Cadastro</h2>
+
+      <form id="form-signup">
+
+        <label>
+          E-mail:
+          <input type="email" name="email" id="signup-email" required>
+        </label>
+
+        <label>
+          Nome:
+          <input type="email" name="email" id="signup-email" required>
+        </label>
+
+
+        <button type="button">Cadastrar</button>
+
+      <form>
+
+    </section>
+    
+  </main>
+
+  <!-- SCRIPT BÁSICO PARA TROCAR SEÇÕES (sem fetch ainda) -->
+  <script>
+    function mostrarSecao(id) {
+      const secoes = document.querySelectorAll('.secao');
+      secoes.forEach(secao => {
+        secao.classList.remove('ativa');
+      });
+
+      const ativa = document.getElementById(id);
+      if (ativa) {
+        ativa.classList.add('ativa');
+      }
+    }
+
+    // Aqui depois você coloca os fetch():
+    // - document.getElementById('btn-carregar-espacos').addEventListener('click', ...)
+    // - document.getElementById('form-espaco').addEventListener('submit', ...)
+  </script>
+</body>
+</html>
