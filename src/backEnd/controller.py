@@ -51,3 +51,6 @@ def validarLogin(data: Login):
 def atualizarLogin(data: Login):
 
         print("papo")
+
+@app.post("/property/create")
+def createPropery(data: PropertyCreate):        #ja converte os dados e verifica se sao validos!
