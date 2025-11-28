@@ -1,13 +1,27 @@
-import mysql.connector
 import mysql.connector as db_driver
+import src.backEnd.models as Model
+from fastapi import FastAPI, HTTPException
 
 def get_connection():
-    return mysql.connector.connect(
+    return db_driver.connect(
         host="localhost",
         user="igor", 
         password="!Igor2002",
         database="seuCantinho",
     )
+
+def estabilish_connection():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    return conn, cursor
+
+def abolish_connection(conn, cursor=None):
+    if cursor:
+        cursor.close()
+    
+    if conn and conn.is_connected():
+        conn.close()
 
 def verify_availability_lock(conn, property_id, initTime, endTime):
     try:
@@ -27,7 +41,7 @@ def verify_availability_lock(conn, property_id, initTime, endTime):
 
         conflict = cursor.fetchone()
         cursor.close()
-    except mysql.Error as e:
+    except db_driver.Error as e:
         print(f"Erro ao verificar disponibilidade de reserva no banco de dados: {e}")
         raise
 
@@ -51,7 +65,7 @@ def make_reservation(conn, user_id, property_id, initTime, endTime):
         cursor.execute(query, (user_id, property_id, initTime, endTime))
 
         new_reservation_id = cursor.lastrowid
-    except mysql.Error as e:
+    except db_driver.Error as e:
         print(f"Erro ao inserir reserva no banco de dados: {e}")
         raise
     finally:
@@ -61,8 +75,7 @@ def make_reservation(conn, user_id, property_id, initTime, endTime):
     
 def delete_reservation(user_id, property_id, initTime):
     try:
-        conn = get_connection()
-        cursor = conn.cursor()
+        conn, cursor = estabilish_connection()
 
         cursor.execute(
             "DELETE * FROM property_reserves WHERE property_id = %s AND renter_id = %s AND initTime = %s",
@@ -71,19 +84,17 @@ def delete_reservation(user_id, property_id, initTime):
 
         cursor.commit()
 
-    except mysql.Error as e:
+    except db_driver.Error as e:
         cursor.rollback()
         print(f"Erro no banco de dados para deletar reserva: {e}")
         raise
 
     finally:
-        cursor.close()
-        conn.close()
+        abolish_connection(conn, cursor)
 
 def update_money (user_id, amount, withdraw):
     try:
-        conn = get_connection()
-        cursor = conn.cursor()
+        conn, cursor = estabilish_connection()
         
         if withdraw:
             cursor.execute(
@@ -102,28 +113,111 @@ def update_money (user_id, amount, withdraw):
             raise
         
         conn.commit()
-    except mysql.Error as e:
+    except db_driver.Error as e:
         if conn:
             conn.rollback()
         raise
     finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+        abolish_connection(conn, cursor)
 
 def property_value (property_id):
-    conn = get_connection()
-    cursor = conn.cursor()
+    try:
+        conn, cursor = estabilish_connection()
 
-    cursor.execute(
-        "SELECT value FROM property WHERE id = %s",
-        (property_id)
-    )
+        cursor.execute(
+            "SELECT value_per_day FROM property WHERE id = %s",
+            (property_id)
+        )
 
-    value = cursor.fetchone()
+        value = cursor.fetchone()
+    except db_driver.Error as e:
+        cursor.rollback()
+        print(f"Erro ao verificar valor da propriedade: {e}")
+        raise
+    finally:
+        abolish_connection(conn, cursor)
+        return value 
+    
+def find_property(address):
+    try:
+        conn, cursor = estabilish_connection()
 
-    cursor.close()
-    conn.close()
+        cursor.execute(
+            "SELECT id FROM property WHERE email = %s",
+            (address)
+        )
 
-    return value 
+        value = cursor.fetchone()
+        conn.commit()
+
+    except db_driver.Error as e:
+        cursor.rollback()
+        print (f"Erro ao buscar a propriedade: {e}")
+        raise
+    finally:
+        abolish_connection(conn, cursor)
+        return value
+        
+
+def create_property(address, contact, property_name, value_per_day):
+    try:
+        conn, cursor = estabilish_connection()
+
+        query = """
+        INSERT INTO property (address, contact, property_name, value_per_day)
+        VALUES (%s, %s, %s, %s)
+        """
+        cursor.execute(query, (address, contact, property_name, value_per_day))
+
+        new_property_id = cursor.lastrowid
+    except db_driver.Error as e:
+        print(f"Erro ao inserir no banco de propriedades: {e}")
+        raise
+    finally:
+        abolish_connection(conn, cursor)
+
+        return new_property_id
+    
+def delete_property(property_id):
+    try:
+        conn, cursor = estabilish_connection()
+
+        cursor.execute("DELETE * FROM property WHERE property_id = %s",
+                       (property_id)
+        )
+
+        cursor.commit()
+
+    except db_driver.Error as e:
+        cursor.rollback()
+        print (f"Erro ao deletar a propriedade: {e}")
+        raise
+    finally:
+        abolish_connection(conn, cursor)
+
+def update_property(property_id, statement, values):
+    try:
+        conn, cursor = estabilish_connection()
+
+        sql_query = """
+        UPDATE property
+        SET {statement}
+        WHERE id = %s
+        """
+
+        conn.execute(sql_query, tuple(values))
+
+        if cursor.rowcount == 0:
+            conn.rollback()
+            raise HTTPException(status_code=404, detail="Propriedade não encontrada!")
+
+        conn.commit()
+
+        return {"message": "Propriedade atualizada com sucesso!"}
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        print(f"Erro ao atualizar propriedade: {e}")
+        raise
+    finally:
+        abolish_connection(conn, cursor)

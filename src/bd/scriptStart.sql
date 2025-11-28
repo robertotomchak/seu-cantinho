@@ -16,10 +16,8 @@ CREATE TABLE IF NOT EXISTS client(
 CREATE TABLE IF NOT EXISTS property(
         id INT AUTO_INCREMENT PRIMARY KEY,
         address VARCHAR(255) NOT NULL UNIQUE,
-        numeroTel VARCHAR(20),
-        nome VARCHAR(255) NOT NULL,
-        isAdmin BOOLEAN NOT NULL,
-        filial VARCHAR(5),
+        contact VARCHAR(20),
+        property_name VARCHAR(255) NOT NULL,
         value_per_day INT
 );
 
