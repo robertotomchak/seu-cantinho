@@ -1,0 +1,33 @@
+#ignora esses arquivos na passagem pro docker
+
+# Node
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Output do Next.js
+.next
+out
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# IDEs
+.vscode
+.idea
+
+# Logs
+*.log
+
+# Env
+.env
+.env.local
+.env.development
+.env.production
+.env.test

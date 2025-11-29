@@ -1,0 +1,44 @@
+#ignora esses arquivos no commit para o git
+
+# NODE + NEXT
+node_modules/
+.next/
+out/
+npm-debug.log
+yarn-error.log
+
+# PYTHON
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+venv/
+.venv/
+
+# DOCKER
+*.pid
+logs/
+tmp/
+*.sock
+
+# MYSQL DATA
+db_data/
+*.sql~
+
+# FRONTEND
+frontend/node_modules/
+frontend/.next/
+
+# BACKEND
+src/backEnd/__pycache__/
+
+# SISTEMA / IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# AMBIENTES
+.env*
+*.env
