@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from src.backEnd.db import get_connection 
 import src.backEnd.db as db
+import src.backEnd.models as Model
 
 def pay_up (user_id, amount):
     db.update_money(user_id, amount, True)
@@ -78,6 +79,32 @@ def delete_property (property_id):
     finally:
         return {"message": "Propriedade deletada com sucesso!"}
     
+def convert_update_property_requisitos (property_id, values: Model.PropertyUpdate):
+    #dicionario sem None's
+    updates = values.model_dump(exclude_none=True)
+
+    #constroi as clausulas da query com base nas chaves do dicionario anterior
+    set_clauses = [f"{field} = %s" for field in updates.keys]
+
+    #separa as clausulas com virgula para a busca ao banco
+    set_statement = ", ".join(set_clauses)
+    
+    #lista do que vai ser atualizado
+    update_values = list(updates.values)
+
+    #id ao final para ser usado no WHERE
+    query_values = update_values + [property_id]
+
+    return query_values, set_statement
+
 def update_property (address, values):
     try:
         id = find_property(address)
+        query, statement = convert_update_property_requisitos(id, values)
+        db.update_property(id, statement, query)
+    except Exception as e:
+        if e.isinstance(HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail="Erro desconhecido no servidor!")
+    finally:
+        return {"???"}
