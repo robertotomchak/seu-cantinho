@@ -31,25 +31,32 @@ def abolish_connection(conn, cursor=None):
 ###     MANIPULACAO DE DINHEIRO
 ###---------------------------------------------------------------------------------------
 
-def update_money (user_id, amount, withdraw):
+def update_money(renter_id, amount, withdraw, reserve_id):
     try:
         conn, cursor = estabilish_connection()
         
         if withdraw:
             cursor.execute(
                 "UPDATE client SET wallet = wallet - %s WHERE id = %s AND wallet >= %s",
-                (amount, user_id, amount)
+                (amount, renter_id, amount)
             )
         else:
             cursor.execute(
                 "UPDATE client SET wallet = wallet + %s WHERE id = %s",
-                (amount, user_id, amount)
-            )            
+                (amount, renter_id, amount)
+            )
 
         rows_affected = cursor.rowcount
+        if withdraw:
+            amount = - amount
         if rows_affected == 0:
             conn.rollback()
             raise
+        query = """
+        INSERT INTO payments (value, renter_id, reserve_id)
+        VALUES (%s, %s, %s)
+        """
+        cursor.execute(query, (amount, renter_id, reserve_id))
         
         conn.commit()
     except db_driver.Error as e:
@@ -139,7 +146,7 @@ def delete_reservation(user_id, property_id, initTime):
 ###     PROPRIEDADE
 ###---------------------------------------------------------------------------------------
 
-def property_value (property_id):
+def property_value(property_id):
     try:
         conn, cursor = estabilish_connection()
 
@@ -242,5 +249,92 @@ def update_property(property_id, statement, values):
             conn.rollback()
         print(f"Erro ao atualizar propriedade: {e}")
         raise
+    finally:
+        abolish_connection(conn, cursor)
+
+###---------------------------------------------------------------------------------------
+###     USUÁRIO
+###---------------------------------------------------------------------------------------
+
+def find_client(cpf):
+    try:
+        conn, cursor = estabilish_connection()
+
+        cursor.execute(
+            "SELECT id FROM client WHERE CPF = %s",
+            (cpf)
+        )
+
+        value = cursor.fetchone()
+
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        print (f"Erro ao buscar o cliente: {e}")
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    finally:
+        abolish_connection(conn, cursor)
+    
+    return value
+
+def create_client(email, password, cpf, numeroTel, nome, isAdmin, filial, wallet):
+    try:
+        conn, cursor = get_connection()
+        query = """
+            INSERT INTO client(email, password, cpf, numeroTel, nome, isAdmin, filial, wallet)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (email, password, cpf, numeroTel, nome, isAdmin, filial, wallet))
+        conn.commit()
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        print(f"Erro ao criar client: {e}")
+        raise
+    finally:
+        abolish_connection(conn, cursor)
+
+def update_client(client_id, statements, values):
+    try:
+        conn, cursor = estabilish_connection()
+
+        sql_query = """
+        UPDATE client
+        SET {statement}
+        WHERE id = %s
+        """
+
+        cursor.execute(sql_query, tuple(values))
+
+        if cursor.rowcount == 0:
+            conn.rollback()
+            raise HTTPException(status_code=404, detail="Cliente não encontrado!")
+
+        conn.commit()
+
+        return {"message": "Cliente atualizada com sucesso!"}
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        print(f"Erro ao atualizar cliente: {e}")
+        raise
+    finally:
+        abolish_connection(conn, cursor)
+
+def delete_client(client_id):
+    try:
+        conn, cursor = estabilish_connection()
+
+        cursor.execute("DELETE FROM client WHERE client_id = %s",
+                       (client_id)
+        )
+
+        conn.commit()
+
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        print (f"Erro ao deletar o cliente: {e}")
+        raise HTTPException(status_code=404, detail="Cliente não encontrado!")
     finally:
         abolish_connection(conn, cursor)
