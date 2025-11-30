@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS client(
         CPF VARCHAR(11) NOT NULL UNIQUE,
         numeroTel VARCHAR(20),
         nome VARCHAR(255) NOT NULL,
-        isAdmin BOOLEAN NOT NULL,
+        isAdmin BOOLEAN NOT NULL DEFAULT(FALSE),
         filial VARCHAR(5),
-        wallet INT
+        wallet INT DEFAULT(0)
 );
 
 CREATE TABLE IF NOT EXISTS property(
@@ -29,7 +29,16 @@ CREATE TABLE IF NOT EXISTS property_reserves(
         endTime TIMESTAMP NOT NULL,
         FOREIGN KEY (renter_id) REFERENCES client(id),
         FOREIGN KEY (property_id) REFERENCES property(id)
-)
+);
+
+CREATE TABLE IF NOT EXISTS payments(
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        value INT NOT NULL,
+        renter_id INT NOT NULL,
+        reserve_id INT NOT NULL,
+        FOREIGN KEY (renter_id) REFERENCES client(id),
+        FOREIGN KEY (reserve_id) REFERENCES property_reserves(id)
+);
 
 INSERT INTO client (email, password, CPF, numeroTel, nome, isAdmin, filial) 
 VALUES ('admin@a', 

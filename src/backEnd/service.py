@@ -3,6 +3,31 @@ from src.backEnd.db import get_connection
 import src.backEnd.db as db
 import src.backEnd.models as Model
 
+###---------------------------------------------------------------------------------------
+###     UTILS
+###---------------------------------------------------------------------------------------
+def convert_update_model_requisitos(id, values):
+    # dicionário sem None's
+    updates = values.model_dump(exclude_none=True)
+
+    # constrói as cláusulas da query com base nas chaves do dicionário
+    set_clauses = [f"{field} = %s" for field in updates.keys()]
+
+    # separa cláusulas com vírgula
+    set_statement = ", ".join(set_clauses)
+
+    # valores que serão atualizados
+    update_values = list(updates.values())
+
+    # inclui o id ao final para o WHERE
+    query_values = update_values + [id]
+
+    return query_values, set_statement
+
+###---------------------------------------------------------------------------------------
+###     PAGAMENTOS
+###---------------------------------------------------------------------------------------
+
 def pay_up (user_id, amount):
     db.update_money(user_id, amount, True)
     return {"message": "Pagamento realizado com sucesso!"}
@@ -10,6 +35,10 @@ def pay_up (user_id, amount):
 def retrieve_money (user_id, amount):
     db.update_money(user_id, amount, False)
     return {"message": "Extorno realizado com sucesso!"}
+
+###---------------------------------------------------------------------------------------
+###     RESERVAS
+###---------------------------------------------------------------------------------------
 
 def get_days (initTime, endTime):
     duration = (endTime - initTime)
@@ -21,7 +50,7 @@ def make_reserve (user_id, property_id, initTime, endTime):
     
     try:
         if (endTime < initTime):    #verifica se o periodo de estadia e valido
-            conn.rollback()     #precisa aqui?
+            conn.rollback()
             raise HTTPException(status_code=403, detail="Período de estadia inválido!")
         
         pay_up(user_id, get_days(initTime, endTime) * db.property_value(property_id))   #tenta realizar o pagamento
@@ -55,13 +84,17 @@ def delete_reserve (user_id, property_id, initTime):
     try:
         db.delete_reservation(user_id, property_id, initTime)   #tenta cancelar a reserva
         db.update_money(user_id, db.property_value(property_id), False) #se foi cancelado, retorna o valor
-    except Exception as e:  #AQUI TALVEZ SEJA INTERESSANTE RETORNAR UM ERRO ESPECIFICO SE A RESERVA NAO FOR DO USER OU SE NAO ACHAR
+    except Exception as e:
         raise HTTPException(status_code=500, detail="Server could not erase reservation")
     finally: 
         return {"message": "Reserva deletada com sucesso!"}
     
+###---------------------------------------------------------------------------------------
+###     PROPRIEDADES
+###---------------------------------------------------------------------------------------
+    
 def find_property(address):
-    return db.find_property
+    return db.find_property(address)
     
 def create_property (address, contact, property_name, value_per_day):
     try:
@@ -78,33 +111,50 @@ def delete_property (property_id):
         raise HTTPException(status_code=500, detail="Erro ao deletar a propriedade")
     finally:
         return {"message": "Propriedade deletada com sucesso!"}
-    
-def convert_update_property_requisitos (property_id, values: Model.PropertyUpdate):
-    #dicionario sem None's
-    updates = values.model_dump(exclude_none=True)
-
-    #constroi as clausulas da query com base nas chaves do dicionario anterior
-    set_clauses = [f"{field} = %s" for field in updates.keys]
-
-    #separa as clausulas com virgula para a busca ao banco
-    set_statement = ", ".join(set_clauses)
-    
-    #lista do que vai ser atualizado
-    update_values = list(updates.values)
-
-    #id ao final para ser usado no WHERE
-    query_values = update_values + [property_id]
-
-    return query_values, set_statement
 
 def update_property (address, values):
     try:
         id = find_property(address)
-        query, statement = convert_update_property_requisitos(id, values)
+        query, statement = convert_update_model_requisitos(id, values)
         db.update_property(id, statement, query)
     except Exception as e:
         if e.isinstance(HTTPException):
             raise e
         raise HTTPException(status_code=500, detail="Erro desconhecido no servidor!")
     finally:
-        return {"???"}
+        return {"message": "Propriedade atualizada com sucesso!"}
+    
+###---------------------------------------------------------------------------------------
+###     CLIENTES
+###---------------------------------------------------------------------------------------
+
+def find_cpf(cpf):
+    return db.find_client(cpf)
+    
+def create_client (email, password, cpf, numeroTel, nome, isAdmin, filial, wallet):
+    try:
+        db.create_client(email, password, cpf, numeroTel, nome, isAdmin, filial, wallet)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Erro ao criar cliente no banco")
+    finally:
+        return {"message": "Cliente registrado com sucesso!"}
+    
+def delete_client (client_id):
+    try:
+        db.delete_client(client_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Erro ao deletar o cliente")
+    finally:
+        return {"message": "Cliente deletado com sucesso!"}
+
+def update_client (cpf, values):
+    try:
+        id = find_cpf(cpf)
+        query, statement = convert_update_model_requisitos(id, values)
+        db.update_client(id, statement, query)
+    except Exception as e:
+        if e.isinstance(HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail="Erro desconhecido no servidor!")
+    finally:
+        return {"message": "Cliente atualizado com sucesso!"}
