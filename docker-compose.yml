@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    container_name: frontend-container-sc
+    ports:
+      - "8000:8000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:3000
+    networks:
+      - app-network
+    depends_on:
+      - backend
+  
+  backend:
+    build: 
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      args:
+        - SERVICE_PORT=3000
+    container_name: backend-container-sc
+    ports:
+      - "3000:3000"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_secret
+      - MYSQL_DATABASE=seuCantinho
+      - MYSQL_USER=adm
+      - MYSQL_PASSWORD=SECRET
+    depends_on:
+      - bd
+    networks:
+      - app-network
+      - bd-network
+
+  bd:
+    image: mysql:8.0
+    container_name: db-container-sc
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./src/bd/scriptStart.sql:/docker-entrypoint-initdb.d/scriptStart.sql:ro
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_secret
+      - MYSQL_DATABASE=seuCantinho
+      - MYSQL_USER=adm
+      - MYSQL_PASSWORD=SECRET
+    networks:
+      - bd-network
+
+networks:
+  app-network:
+    driver: bridge
+  bd-network:
+    driver: bridge
+        
+volumes:
+  db_data:    

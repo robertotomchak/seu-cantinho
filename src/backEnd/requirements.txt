@@ -1,0 +1,5 @@
+# requirements.txt
+fastapi
+uvicorn[standard]  # O servidor ASGI para rodar o FastAPI
+pydantic
+mysql-connector-python
