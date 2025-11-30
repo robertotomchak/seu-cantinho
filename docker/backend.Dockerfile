@@ -1,51 +1,47 @@
-#Dockerfile para criação da imagem do backend (FastAPI/ uvicorn)
-
 # ----------------------------------------------------------------------
 # BUILD STAGE
 # ----------------------------------------------------------------------
-
 FROM python:3.11-alpine AS build
 
 WORKDIR /app
 
 RUN apk add --no-cache build-base
 
-COPY src/backEnd/requirements.txt .
+# copia requirements
+COPY src/backEnd/requirements.txt /app/requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/backEnd/ . 
+# copia a pasta inteira "src" para manter o path correto
+COPY src /app/src
+
 
 # ----------------------------------------------------------------------
 # PRODUCTION STAGE
 # ----------------------------------------------------------------------
-
-
 FROM python:3.11-alpine AS production
 
 WORKDIR /app
 
-#instala utilitarios
 RUN apk add --no-cache ca-certificates curl
 
-#copia o necessario do build
+# copia libs e arquivos do build stage
 COPY --from=build /usr/local/lib /usr/local/lib
-COPY --from=build /app /app
 COPY --from=build /usr/local/bin /usr/local/bin
+COPY --from=build /app /app
 
-#cria usuario com permissoes especificas
+# cria usuario-
 RUN adduser --disabled-password --gecos "" appuser \
     && chown -R appuser:appuser /app
 
-#troca pro usuario nao root
 USER appuser
 
-#exposicao do back para o front
 ARG SERVICE_PORT=3000
 EXPOSE ${SERVICE_PORT}
 
-# HEALTHCHECK: Verifica a disponibilidade da aplicação
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:${SERVICE_PORT}/health || exit 1
 
-CMD ["uvicorn", "controller:app", "--host", "0.0.0.0", "--port", "3000"]
+# IMPORTANTE: usar o caminho correto com src.backEnd
+CMD ["uvicorn", "src.backEnd.controller:app", "--host", "0.0.0.0", "--port", "3000"]
+
