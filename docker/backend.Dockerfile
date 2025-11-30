@@ -29,8 +29,9 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates curl
 
 #copia o necessario do build
-COPY --from=build /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=build /usr/local/lib /usr/local/lib
 COPY --from=build /app /app
+COPY --from=build /usr/local/bin /usr/local/bin
 
 #cria usuario com permissoes especificas
 RUN adduser --disabled-password --gecos "" appuser \
