@@ -12,13 +12,13 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 #copia arquivos de dependencia, evita intall desnecessario
-COPY package.json package-lock.json ./
+COPY src/frontEnd/package.json src/frontEnd/package-lock.json ./
 
 #dependencias necessarias
 RUN npm ci
 
 #copia codigo pro container
-COPY . . 
+COPY src/frontEnd .
 
 RUN npm run build
 
