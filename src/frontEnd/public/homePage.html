@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Seu cantinho</title>
   <link rel="stylesheet" href="style.css">
-  <script src="scripts/authScripts.js"></script>
+  <script src="scripts/scripts.js"></script>
   <script src="scripts/listeners.js"></script>
   <script src="scripts/logic.js"></script>
 </head>
@@ -15,10 +15,10 @@
     <img src="img/logo.png" width="128" height="128" alt="logo">
 
     <nav>
-      <button id="btnCadastrarEspaco" onclick="mostrarSecao('sec-cadastroEspacos')">Cadastrar espaço</button>
+      <button id="btnCadastrarEspaco" onclick="mostrarSecao('sec-cadastroEspacos')">Manusear espaços</button>
       <button onclick="mostrarSecao('sec-reservaEspacos')">Reservar um espaço</button>
-      <button onclick="mostrarSecao('sec-reservas')">Reservas</button>
       <button onclick="mostrarSecao('sec-pagamentos')">Pagamentos</button>
+      <button onclick="mostrarSecao('sec-minhasReservas')">Minhas Reservas</button>
     </nav>
 
     <nav>
@@ -32,88 +32,175 @@
   <main>
     <!-- ESPAÇOS -->
     <section id="sec-cadastroEspacos" class="secao ativa">
-      <h2>Espaços</h2>
+      <h2>Cadastrar Espaço</h2>
 
       <!-- Formulário para criar/editar espaço -->
       <form id="form-espaco">
+
         <label>
-          Nome do espaço:
-          <input type="text" name="nome" required />
+          Numero para contato:
+          <input type="text" name="numContato" id="cadastroEspacoNumero" required />
         </label>
-        <label>
-          Capacidade:
-          <input type="number" name="capacidade" min="1" required />
-        </label>
+
         <label>
           Localização:
-          <input type="text" name="localizacao" />
+          <input type="text" name="localizacao" id="cadastroEspacoLoc" required />
         </label>
-        <button type="submit">Salvar Espaço</button>
+
+        <label>
+          Nome do espaço:
+          <input type="text" name="nome" id="cadastroEspacoNome" required />
+        </label>
+
+        <label>
+          Valor da diaria:
+          <input type="number" name="valorDiaria" min="1" id="cadastroEspacoValor" required />
+        </label>
+
+        <label>
+          Capacidade:
+          <input type="number" name="capacidade" min="1" id="cadastroEspacoCapacidade" required />
+        </label>
+
+        <button type="button" onclick="sendNewPlace()">Cadastrar</button>
+
       </form>
 
-      <!-- Tabela para listar espaços -->
-      <h3>Lista de espaços</h3>
-      <button id="btn-carregar-espacos">Carregar espaços</button>
-      <table>
-        <thead>
+      <h2>Remover Espaços</h2>
+
+      <button onclick="carregarEspacosRemocao()">Carregar espacos cadastrados</button>
+
+      <table id="tabelaEspacosRemover" border="1" style="width:100%; text-align:left; margin-top: 20px;">
+      <thead>
           <tr>
-            <th>ID</th>
-            <th>Nome</th>
-            <th>Capacidade</th>
-            <th>Localização</th>
-            <th>Ações</th>
+              <th>ID</th>            <!-- ADICIONE ESTA LINHA -->
+              <th>Nome</th>
+              <th>Endereço</th>
+              <th>Contato</th>       <!-- Você também mostra contact no JS -->
+              <th>Valor/dia</th>
+              <th>Capacidade</th>
+              <th>Ação</th>
           </tr>
-        </thead>
-        <tbody id="tabela-espacos">
-          <!-- Linhas preenchidas via JS -->
-        </tbody>
+      </thead>
+      <tbody id="listaEspacos"></tbody>
       </table>
+
+      <h2>Atualizar Espaço</h2>
+
+      <form id="form-update-espaco" style="margin-top: 20px;">
+
+      <label>
+        ID do espaço (obrigatório):
+        <input type="number" id="updId" placeholder="Ex: 3" required />
+      </label>
+
+      <label>
+        Novo nome:
+        <input type="text" id="updNome" placeholder="(deixe vazio para não alterar)" />
+      </label>
+
+      <label>
+        Novo contato:
+        <input type="text" id="updContato" placeholder="(opcional)" />
+      </label>
+
+      <label>
+        Novo valor/dia:
+        <input type="number" id="updValor" min="1" placeholder="(opcional)" />
+      </label>
+
+      <label>
+        Nova capacidade:
+        <input type="number" id="updCapacidade" min="1" placeholder="(opcional)" />
+      </label>
+
+      <button type="button" onclick="atualizarEspaco()">Atualizar</button>
+
+    </form>
+
     </section>
 
     <!-- RESERVAS -->
-    <section id="sec-reservas" class="secao">
-      <h2>Reservas</h2>
+    <section id="sec-reservaEspacos" class="secao">
+      <h2>Reservar espaço</h2>
 
-      <form id="form-reserva">
-        <label>
-          ID do espaço:
-          <input type="number" name="espaco_id" required />
-        </label>
-        <label>
-          ID do usuário:
-          <input type="number" name="usuario_id" required />
-        </label>
-        <label>
-          Data e hora de início:
-          <input type="datetime-local" name="inicio" required />
-        </label>
-        <label>
-          Data e hora de fim:
-          <input type="datetime-local" name="fim" required />
-        </label>
-        <button type="submit">Salvar Reserva</button>
-      </form>
+      <button onclick="carregarEspacosReserva()">Carregar espaços</button>
 
-      <h3>Lista de reservas</h3>
-      <button id="btn-carregar-reservas">Carregar reservas</button>
-      <table>
+      <table id="tabelaEspacosReserva" border="1" style="width:100%; text-align:left; margin-top: 20px;">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Espaço</th>
-            <th>Usuário</th>
-            <th>Início</th>
-            <th>Fim</th>
-            <th>Status</th>
-            <th>Ações</th>
+            <th>ID</th>           
+            <th>Nome</th>
+            <th>Endereço</th>
+            <th>Contato</th>
+            <th>Valor/dia</th>
+            <th>Capacidade</th>
           </tr>
         </thead>
-        <tbody id="tabela-reservas">
-          <!-- Preenchido via JS -->
-        </tbody>
+        <tbody id="listaEspacosReserva"></tbody>
       </table>
+
+      <h3 style="margin-top: 30px;">Fazer Reserva</h3>
+
+      <form id="formReserva">
+          <label>
+            ID do espaço:
+            <input type="number" id="reservaId" required />
+          </label>
+
+          <label>
+            Data de início:
+            <input type="date" id="reservaInicio" required />
+          </label>
+
+          <label>
+            Data de fim:
+            <input type="date" id="reservaFim" required />
+          </label>
+
+          <button type="button" onclick="reservarEspacoManual()">
+            Reservar
+          </button>
+      </form>
+
     </section>
 
+    <!-- MINHAS RESERVAS -->
+    <section id="sec-minhasReservas" class="secao">
+    <h2>Minhas Reservas</h2>
+
+    <!-- Botão para carregar reservas -->
+    <button onclick="carregarMinhasReservas()">Carregar Reservas</button>
+
+    <!-- Tabela onde as reservas serão listadas -->
+    <table id="tabelaMinhasReservas" border="1" style="width:100%; text-align:left; margin-top: 20px;">
+        <thead>
+            <tr>
+                <th>ID da Reserva</th>
+                <th>Propriedade</th>
+                <th>Início</th>
+                <th>Fim</th>
+                <th>Capacidade</th>
+            </tr>
+        </thead>
+        <tbody id="listaMinhasReservas"></tbody>
+    </table>
+
+    <h3 style="margin-top: 30px;">Deletar Reserva</h3>
+
+    <!-- Formulário simples para apagar reserva -->
+    <form id="formDeletarReserva">
+        <label>
+            ID da Reserva:
+            <input type="number" id="deleteReservaId" required />
+        </label>
+
+        <button type="button" onclick="deletarReserva()">
+            Remover Reserva
+        </button>
+    </form>
+    </section>
+    
     <!-- PAGAMENTOS -->
     <section id="sec-pagamentos" class="secao">
       <h2>Pagamentos</h2>
@@ -213,11 +300,46 @@
 
         <label>
           Nome:
-          <input type="email" name="email" id="signup-email" required>
+          <input type="text" name="name" id="name" required>
         </label>
 
+        <label>
+          CPF:
+          <input type="text" id="cpf" maxlength="11" pattern="[0-9]{11}" required>
+        </label>
 
-        <button type="button">Cadastrar</button>
+        <label>
+          Senha:
+          <input type="password" id="password" required>
+        </label>
+
+        <label>
+          Admin:
+          <input type="checkbox" id="isAdmin" required>
+        </label>
+
+        <label>
+          Filial:
+          <select id="filial" name="filial" required>
+            <option value="">Selecione a Filial...</option>
+            <option value="cwb">Curitiba</option>
+            <option value="sp">São Paulo</option>
+            <option value="rj">Rio de Janeiro</option>
+            <option value="poa">Porto Alegre</option>
+          </select>
+        </label>
+
+        <label>
+          Numero de telefone:
+          <input type="text" id="numeroTel" required>
+        </label>
+
+        <label>
+          Saldo:
+          <input type="number" id="wallet">
+        </label>
+
+        <button type="button" onclick="sendSignup()">Cadastrar</button>
 
       <form>
 
