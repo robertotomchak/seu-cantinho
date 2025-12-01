@@ -158,3 +158,4 @@ def update_client (cpf, values):
         raise HTTPException(status_code=500, detail="Erro desconhecido no servidor!")
     finally:
         return {"message": "Cliente atualizado com sucesso!"}
+

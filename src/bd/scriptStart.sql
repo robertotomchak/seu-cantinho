@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS property(
         address VARCHAR(255) NOT NULL UNIQUE,
         contact VARCHAR(20),
         property_name VARCHAR(255) NOT NULL,
-        value_per_day INT
+        value_per_day INT,
+        capacity INT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS property_reserves(
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS property_reserves(
         property_id INT NOT NULL,
         initTime TIMESTAMP NOT NULL,
         endTime TIMESTAMP NOT NULL,
+        capacity INT NOT NULL,
         FOREIGN KEY (renter_id) REFERENCES client(id),
         FOREIGN KEY (property_id) REFERENCES property(id)
 );
@@ -40,12 +42,12 @@ CREATE TABLE IF NOT EXISTS payments(
         FOREIGN KEY (reserve_id) REFERENCES property_reserves(id)
 );
 
-INSERT INTO client (email, password, CPF, numeroTel, nome, isAdmin, filial) 
-VALUES ('admin@a', 
-        'jhin1234',
+INSERT INTO client (email, password, CPF, numeroTel, nome, isAdmin, filial, wallet) 
+VALUES ('user@admin', 
+        'strongpassword',
         '00000000000',
         NULL,
-        'ricardo rei delas',
+        'Admin',
         1,
         NULL,
         10000)

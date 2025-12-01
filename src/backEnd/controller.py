@@ -1,56 +1,80 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from src.backEnd.db import get_connection 
+import src.backEnd.service as service
+import src.backEnd.models as models
+import src.backEnd.db as db
 
 app = FastAPI()
 
 origins = [
-        "http://localhost:9999",
-        "http://127.0.0.1:9999",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
 ]
 
 app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  
+        allow_origins=["*"],
+        allow_credentials=True,  
         allow_methods=["*"],
         allow_headers=["*"],
 )
 
-class Login(BaseModel):
-        email: str
-        password: str
+# Servicos referentes ao login
 
 @app.post("/login")
-def validarLogin(data: Login):
-    
-        conn = get_connection()
-        cursor = conn.cursor()
+def POSTlogin(data: models.Login):
 
-        cursor.execute(
-                "SELECT id, isAdmin, nome FROM client WHERE email = %s AND password = %s",
-                (data.email, data.password)
-        )
+        return db.validarLogin(data)
 
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if row:
-                usuario_id = row[0]
-                isAdmin = row[1]
-                nome = row[2]
-                return {"mensagem": "Login OK", 
-                "usuario_id": usuario_id,
-                "isAdmin": isAdmin,
-                "nome": nome
-                }
-        else:
-                raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
 @app.put("/login")
-def atualizarLogin(data: Login):
+def atualizarLogin(data: models.Login):
 
-        print("papo")
+        print("teste")  
 
-@app.post("/property/create")
-def createPropery(data: PropertyCreate):        #ja converte os dados e verifica se sao validos!
+@app.post("/signup")
+def POSTsignup(data: models.ClientCreate):
+
+        return db.cadastrarUsuario(data)
+
+# Servicos referentes ao cadastro de espaco
+
+@app.post("/properties/create")
+def POSTreserve(data: models.PropertyCreate):
+
+        return db.create_property(data.address, data.contact, data.property_name, data.value_per_day, data.capacity)
+
+@app.put("/properties/update/{property_id}")
+def PUTproperty(property_id: int, data: models.PropertyUpdate):
+    
+        return db.update_property(property_id, data)
+
+@app.delete("/properties/delete/{property_id}")
+def DELETEproperty(property_id: int):
+        return db.delete_property(property_id)
+
+@app.get("/properties/get/all")
+def GETALLproperties():
+
+        return db.getPropertiesDB()
+
+
+@app.post("/reserve/create")
+def POSTreserva(data: models.PropertyReserveCreate):
+
+        return db.createReserve(data)
+
+@app.get("/reserve/get/{user_id}")
+def GETreserva(user_id: int):
+
+        return db.getMyReserves(user_id);
+
+@app.delete("/reserve/delete/{reserva_id}")
+def delete_reserva(reserva_id: int):
+    return db.delete_reserva(reserva_id)
+
+
+#@app.post("/reserve/update")
+#def PUTreserve(data: models.PropertyUpdate):

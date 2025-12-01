@@ -8,10 +8,11 @@ from fastapi import FastAPI, HTTPException
 
 def get_connection():
     return db_driver.connect(
-        host="localhost",
-        user="igor", 
-        password="!Igor2002",
+        host="bd",
+        user="adm", 
+        password="SECRET",
         database="seuCantinho",
+        port=3306
     )
 
 def estabilish_connection():
@@ -188,67 +189,122 @@ def find_property(address):
     return value
         
 
-def create_property(address, contact, property_name, value_per_day):
+def create_property(address, contact, property_name, value_per_day, capacity):
     try:
         conn, cursor = estabilish_connection()
 
         query = """
-        INSERT INTO property (address, contact, property_name, value_per_day)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO property (address, contact, property_name, value_per_day, capacity)
+        VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(query, (address, contact, property_name, value_per_day))
+        cursor.execute(query, (address, contact, property_name, value_per_day, capacity))
 
         new_property_id = cursor.lastrowid
+
+        conn.commit() 
+
+        return new_property_id
+
     except db_driver.Error as e:
         print(f"Erro ao inserir no banco de propriedades: {e}")
         raise
     finally:
         abolish_connection(conn, cursor)
-
-        return new_property_id
+        
+        
     
 def delete_property(property_id):
     try:
         conn, cursor = estabilish_connection()
 
-        cursor.execute("DELETE FROM property WHERE property_id = %s",
-                       (property_id)
-        )
-
+        cursor.execute("DELETE FROM property WHERE id = %s", (property_id,))
         conn.commit()
 
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Propriedade não encontrada!")
+
+        return {"mensagem": "Propriedade removida com sucesso!"}
+
     except db_driver.Error as e:
-        if conn:
-            conn.rollback()
-        print (f"Erro ao deletar a propriedade: {e}")
-        raise HTTPException(status_code=404, detail="Propriedade não encontrada!")
+        print(f"Erro ao deletar propriedade: {e}")
+        raise
+
     finally:
         abolish_connection(conn, cursor)
 
-def update_property(property_id, statement, values):
+def update_property(property_id, data):
     try:
         conn, cursor = estabilish_connection()
 
-        sql_query = """
-        UPDATE property
-        SET {statement}
-        WHERE id = %s
+        # transforma o modelo Pydantic em dict
+        fields = data.dict()
+
+        # filtra somente campos enviados
+        fields = {k: v for k, v in fields.items() if v is not None}
+
+        if not fields:
+            raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
+
+        # monta SET dinamicamente
+        set_clause = ", ".join(f"{col} = %s" for col in fields.keys())
+
+        values = list(fields.values())
+        values.append(property_id)  # ID vai no WHERE
+
+        sql = f"""
+            UPDATE property
+            SET {set_clause}
+            WHERE id = %s
         """
 
-        cursor.execute(sql_query, tuple(values))
-
-        if cursor.rowcount == 0:
-            conn.rollback()
-            raise HTTPException(status_code=404, detail="Propriedade não encontrada!")
-
+        cursor.execute(sql, values)
         conn.commit()
 
-        return {"message": "Propriedade atualizada com sucesso!"}
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Propriedade não encontrada")
+
+        return {"mensagem": "Propriedade atualizada com sucesso!"}
+
     except db_driver.Error as e:
         if conn:
             conn.rollback()
         print(f"Erro ao atualizar propriedade: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao atualizar propriedade")
+
+    finally:
+        abolish_connection(conn, cursor)
+
+def getPropertiesDB():
+
+    try:
+        conn, cursor = estabilish_connection()
+
+        query = """
+        SELECT 
+            id,
+            property_name,
+            address,
+            contact,
+            value_per_day,
+            capacity
+        FROM property
+        """
+
+        cursor.execute(query)
+        rows = cursor.fetchall()
+
+        # Pega os nomes das colunas
+        columns = [col[0] for col in cursor.description]
+
+        # Converte cada linha em um dict
+        propriedades = [dict(zip(columns, row)) for row in rows]
+
+        return propriedades
+
+    except db_driver.Error as e:
+        print(f"Erro ao puxar propriedades: {e}")
         raise
+
     finally:
         abolish_connection(conn, cursor)
 
@@ -336,5 +392,164 @@ def delete_client(client_id):
             conn.rollback()
         print (f"Erro ao deletar o cliente: {e}")
         raise HTTPException(status_code=404, detail="Cliente não encontrado!")
+    finally:
+        abolish_connection(conn, cursor)
+
+###---------------------------------------------------------------------------------------
+###     LOGIN/CADASTRO
+###---------------------------------------------------------------------------------------
+
+def validarLogin(data: Model.Login):
+    
+        try:
+            conn, cursor = estabilish_connection()
+
+            cursor.execute(
+                    "SELECT id, isAdmin, nome FROM client WHERE email = %s AND password = %s",
+                    (data.email, data.password)
+            )
+
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+        
+
+            if row:
+                    usuario_id = row[0]
+                    isAdmin = row[1]
+                    nome = row[2]
+                    return {"mensagem": "Login OK", 
+                    "usuario_id": usuario_id,
+                    "isAdmin": isAdmin,
+                    "nome": nome
+                    }
+            else:
+                    raise HTTPException(status_code=401, detail="Credenciais inválidas")
+        except Exception as e:
+            if e.isinstance(HTTPException):
+                raise e
+            raise HTTPException(status_code=500, detail="Erro desconhecido no servidor!")
+
+def cadastrarUsuario(data: Model.ClientCreate):
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(
+                """
+                INSERT INTO client (email, nome, cpf, isAdmin, filial, password, wallet, numeroTel)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (data.email, data.nome, data.CPF, data.isAdmin, data.filial, data.password, data.wallet, data.numeroTel)
+        )
+
+        conn.commit()
+
+        novo_id = cursor.lastrowid
+
+        cursor.close()
+        conn.close()
+
+        return {"mensagem": "Usuário criado com sucesso!", "id": novo_id}
+
+
+###---------------------------------------------------------------------------------------
+###     RESERVAS
+###---------------------------------------------------------------------------------------
+
+def createReserve(data: Model.PropertyReserveCreate):
+    try:
+        # Conexão com o banco
+        conn, cursor = estabilish_connection()
+
+        # 1 — Buscar capacidade da propriedade
+        cursor.execute(
+            "SELECT capacity FROM property WHERE id = %s",
+            (data.property_id,)
+        )
+
+        result = cursor.fetchone()
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Propriedade não encontrada!")
+
+        capacity = result[0]
+
+        print("---- NOVA RESERVA RECEBIDA ----")
+        print(f"Renter ID: {data.renter_id}")
+        print(f"Property ID: {data.property_id}")
+        print(f"Init Time: {data.initTime}")
+        print(f"End Time: {data.endTime}")
+        print(f"Capacity encontrada: {capacity}")
+        print("--------------------------------")
+
+        # 2 — Inserir na tabela property_reserves
+        insert_query = """
+            INSERT INTO property_reserves (renter_id, property_id, initTime, endTime, capacity)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+
+        cursor.execute(
+            insert_query,
+            (data.renter_id, data.property_id, data.initTime, data.endTime, capacity)
+        )
+
+        conn.commit()
+
+        novo_id = cursor.lastrowid
+
+        return {"mensagem": "Reserva criada com sucesso!", "id": novo_id}
+
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        print(f"Erro ao criar reserva: {e}")
+        raise HTTPException(status_code=500, detail="Erro no banco de dados.")
+
+    finally:
+        abolish_connection(conn, cursor)
+
+def getMyReserves(renter_id: int):
+    conn, cursor = estabilish_connection()
+    cursor.execute(
+        "SELECT * FROM property_reserves WHERE renter_id = %s",
+        (renter_id,)
+    )
+    reservas = cursor.fetchall()
+    abolish_connection(conn, cursor)
+    return [
+        {
+            "id": r[0],
+            "renter_id": r[1],
+            "property_id": r[2],
+            "initTime": r[3],
+            "endTime": r[4],
+            "capacity": r[5],
+        }
+        for r in reservas
+    ]
+
+def delete_reserva(reserva_id: int):
+    try:
+        conn, cursor = estabilish_connection()
+
+        cursor.execute(
+            "DELETE FROM property_reserves WHERE id = %s",
+            (reserva_id,)
+        )
+
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Reserva não encontrada!")
+
+        return {"mensagem": "Reserva removida com sucesso!"}
+
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        print(f"Erro ao deletar reserva: {e}")
+        raise HTTPException(status_code=500, detail="Erro no banco.")
+
     finally:
         abolish_connection(conn, cursor)
