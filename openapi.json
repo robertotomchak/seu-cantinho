@@ -1,0 +1,196 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Seu Cantinho API",
+    "version": "1.0.0",
+    "description": "Documentação gerada a partir das rotas e modelos reais."
+  },
+  "paths": {
+    "/login": {
+      "post": {
+        "summary": "Realiza login",
+        "operationId": "POSTlogin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Login" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Login efetuado" } }
+      },
+      "put": {
+        "summary": "Atualiza dados de login",
+        "operationId": "PUTlogin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Login" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Login atualizado" } }
+      }
+    },
+
+    "/signup": {
+      "post": {
+        "summary": "Cadastra um novo usuário",
+        "operationId": "POSTsignup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClientCreate" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Usuário cadastrado" } }
+      }
+    },
+
+    "/properties/create": {
+      "post": {
+        "summary": "Cria uma nova propriedade",
+        "operationId": "POSTreserve",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PropertyCreate" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Propriedade criada" } }
+      }
+    },
+
+    "/properties/update/{property_id}": {
+      "put": {
+        "summary": "Atualiza uma propriedade pelo ID",
+        "operationId": "PUTproperty",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PropertyUpdate" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Propriedade atualizada" } }
+      }
+    },
+
+    "/properties/delete/{property_id}": {
+      "delete": {
+        "summary": "Deleta uma propriedade pelo ID",
+        "operationId": "DELETEproperty",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": { "200": { "description": "Propriedade deletada" } }
+      }
+    },
+
+    "/properties/get/all": {
+      "get": {
+        "summary": "Retorna todas as propriedades",
+        "operationId": "GETALLproperties",
+        "responses": { "200": { "description": "Lista de propriedades" } }
+      }
+    },
+
+    "/reserve/create": {
+      "post": {
+        "summary": "Cria uma reserva",
+        "operationId": "POSTreserva",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PropertyReserveCreate" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Reserva criada" } }
+      }
+    }
+  },
+
+  "components": {
+    "schemas": {
+      "Login": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "password": { "type": "string" }
+        },
+        "required": ["email", "password"]
+      },
+
+      "ClientCreate": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "maxLength": 255 },
+          "password": { "type": "string", "minLength": 5, "maxLength": 255 },
+          "CPF": { "type": "string", "maxLength": 11 },
+          "numeroTel": { "type": "string", "maxLength": 20 },
+          "nome": { "type": "string", "maxLength": 255 },
+          "isAdmin": { "type": "boolean", "nullable": true },
+          "filial": { "type": "string", "maxLength": 5 },
+          "wallet": { "type": "integer", "nullable": true }
+        },
+        "required": ["email", "password", "CPF", "numeroTel", "nome", "filial"]
+      },
+
+      "PropertyCreate": {
+        "type": "object",
+        "properties": {
+          "address": { "type": "string", "maxLength": 255 },
+          "contact": { "type": "string", "maxLength": 20 },
+          "property_name": { "type": "string", "maxLength": 255, "nullable": true },
+          "value_per_day": { "type": "integer", "minimum": 1 },
+          "capacity": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["address", "contact", "value_per_day", "capacity"]
+      },
+
+      "PropertyUpdate": {
+        "type": "object",
+        "properties": {
+          "contact": { "type": "string", "maxLength": 20, "nullable": true },
+          "property_name": { "type": "string", "maxLength": 255, "nullable": true },
+          "value_per_day": { "type": "integer", "minimum": 1, "nullable": true },
+          "capacity": { "type": "integer", "minimum": 1, "nullable": true }
+        }
+      },
+
+      "PropertyReserveCreate": {
+        "type": "object",
+        "properties": {
+          "renter_id": { "type": "integer" },
+          "property_id": { "type": "integer" },
+          "initTime": { "type": "string", "description": "Início da reserva" },
+          "endTime": { "type": "string", "description": "Fim da reserva" }
+        },
+        "required": ["renter_id", "property_id", "initTime", "endTime"]
+      }
+    }
+  }
+}
+
