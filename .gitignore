@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #ignora esses arquivos no commit para o git
 
 # NODE + NEXT
@@ -43,13 +42,3 @@ Thumbs.db
 # AMBIENTES
 .env*
 *.env
-=======
-.venv
-.vscode
-.git
-<<<<<<< HEAD
->>>>>>> 6ecc074 (ADD Payment and Reserve logics)
-=======
-node_modules
-.next
->>>>>>> 532740e (Update property complete)
