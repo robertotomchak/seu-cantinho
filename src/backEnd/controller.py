@@ -26,7 +26,7 @@ app.add_middleware(
 @app.post("/login")
 def POSTlogin(data: models.Login):
 
-        return db.validarLogin(data)
+        return service.validarLogin(data)
 
 
 @app.put("/login")
@@ -37,43 +37,43 @@ def atualizarLogin(data: models.Login):
 @app.post("/signup")
 def POSTsignup(data: models.ClientCreate):
 
-        return db.cadastrarUsuario(data)
+        return service.cadastrarUsuario(data)
 
 # Servicos referentes ao cadastro de espaco
 
 @app.post("/properties/create")
 def POSTreserve(data: models.PropertyCreate):
 
-        return db.create_property(data.address, data.contact, data.property_name, data.value_per_day, data.capacity)
+        return service.create_property(data.address, data.contact, data.property_name, data.value_per_day, data.capacity)
 
 @app.put("/properties/update/{property_id}")
 def PUTproperty(property_id: int, data: models.PropertyUpdate):
     
-        return db.update_property(property_id, data)
+        return service.update_property(property_id, data)
 
 @app.delete("/properties/delete/{property_id}")
 def DELETEproperty(property_id: int):
-        return db.delete_property(property_id)
+        return service.delete_property(property_id)
 
 @app.get("/properties/get/all")
 def GETALLproperties():
 
-        return db.getPropertiesDB()
+        return service.getProperties()
 
 
 @app.post("/reserve/create")
 def POSTreserva(data: models.PropertyReserveCreate):
 
-        return db.createReserve(data)
+        return service.make_reserve(data.renter_id, data.property_id, data.initTime, data.endTime)
 
 @app.get("/reserve/get/{user_id}")
 def GETreserva(user_id: int):
 
-        return db.getMyReserves(user_id);
+        return service.getReserves(user_id)
 
 @app.delete("/reserve/delete/{reserva_id}")
 def delete_reserva(reserva_id: int):
-    return db.delete_reserva(reserva_id)
+    return service.delete_reserve(reserva_id)
 
 
 #@app.post("/reserve/update")

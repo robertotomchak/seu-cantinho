@@ -89,6 +89,9 @@ def delete_reserve (user_id, property_id, initTime):
     finally: 
         return {"message": "Reserva deletada com sucesso!"}
     
+def getReserves (userId):
+    return db.getMyReserves(userId)
+
 ###---------------------------------------------------------------------------------------
 ###     PROPRIEDADES
 ###---------------------------------------------------------------------------------------
@@ -158,3 +161,16 @@ def update_client (cpf, values):
         raise HTTPException(status_code=500, detail="Erro desconhecido no servidor!")
     finally:
         return {"message": "Cliente atualizado com sucesso!"}
+
+###---------------------------------------------------------------------------------------
+###     LOGIN
+###---------------------------------------------------------------------------------------
+
+def validarLogin(data):
+    return db.validarLogin(data)
+
+def cadastrarUsuario(data):
+    return db.cadastrarUsuario(data)
+
+def getProperties():
+    return db.getPropertiesDB()
