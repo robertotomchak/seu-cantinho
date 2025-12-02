@@ -249,12 +249,15 @@ async function reservarEspacoManual() {
         return;
     }
 
+    console.log ("UEEEEEEEEE")
     const body = {
         renter_id: renterId,      // <- AGORA VAI JUNTO
         property_id: Number(id),
         initTime: inicio,
         endTime: fim
     };
+
+    console.log("CORPO E", body)
 
     const resposta = await fetch("http://localhost:3000/reserve/create", {
         method: "POST",

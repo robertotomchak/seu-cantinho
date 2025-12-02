@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS property_reserves(
         property_id INT NOT NULL,
         initTime TIMESTAMP NOT NULL,
         endTime TIMESTAMP NOT NULL,
-        capacity INT NOT NULL,
         FOREIGN KEY (renter_id) REFERENCES client(id),
         FOREIGN KEY (property_id) REFERENCES property(id)
 );

@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from src.backEnd.db import get_connection 
 import src.backEnd.db as db
 import src.backEnd.models as Model
+from datetime import datetime
 
 ###---------------------------------------------------------------------------------------
 ###     UTILS
@@ -28,12 +29,12 @@ def convert_update_model_requisitos(id, values):
 ###     PAGAMENTOS
 ###---------------------------------------------------------------------------------------
 
-def pay_up (user_id, amount):
-    db.update_money(user_id, amount, True)
+def pay_up (user_id, amount, reservation_id):
+    db.update_money(user_id, amount, True, reservation_id)
     return {"message": "Pagamento realizado com sucesso!"}
 
-def retrieve_money (user_id, amount):
-    db.update_money(user_id, amount, False)
+def retrieve_money (user_id, amount, reservation_id):
+    db.update_money(user_id, amount, False, reservation_id)
     return {"message": "Extorno realizado com sucesso!"}
 
 ###---------------------------------------------------------------------------------------
@@ -41,7 +42,11 @@ def retrieve_money (user_id, amount):
 ###---------------------------------------------------------------------------------------
 
 def get_days (initTime, endTime):
-    duration = (endTime - initTime)
+    DATE_FORMAT = "%Y-%m-%d"
+
+    initTime = datetime.strptime(initTime, DATE_FORMAT).date()
+    endTime = datetime.strptime(endTime, DATE_FORMAT).date()
+    duration = endTime - initTime
     return duration.days
 
 def make_reserve (user_id, property_id, initTime, endTime):
@@ -53,8 +58,6 @@ def make_reserve (user_id, property_id, initTime, endTime):
             conn.rollback()
             raise HTTPException(status_code=403, detail="Período de estadia inválido!")
         
-        pay_up(user_id, get_days(initTime, endTime) * db.property_value(property_id))   #tenta realizar o pagamento
-        
         conflict = db.verify_availability_lock(conn, property_id, initTime, endTime)    #verifica se ha conflito de reservas
 
         if conflict:
@@ -63,6 +66,8 @@ def make_reserve (user_id, property_id, initTime, endTime):
         
         reservation_id = db.make_reservation(conn, user_id, property_id, initTime, endTime) #realiza a reserva
 
+        pay_up(user_id, get_days(initTime, endTime) * db.property_value(property_id), reservation_id)   #tenta realizar o pagamento
+        
         conn.commit()
         return {"message": "Reserva criada com sucesso!", "reservation_id": reservation_id}
     
@@ -71,7 +76,7 @@ def make_reserve (user_id, property_id, initTime, endTime):
             conn.rollback()
 
         if isinstance(e, HTTPException):
-            raise
+            raise e
 
         print(f"Erro inesperado {e}")
         raise HTTPException(status_code=500, detail="Erro ao criar a reserva")
@@ -82,8 +87,9 @@ def make_reserve (user_id, property_id, initTime, endTime):
 
 def delete_reserve (user_id, property_id, initTime):
     try:
+        data = db.getReserve(user_id, property_id, initTime)
         db.delete_reservation(user_id, property_id, initTime)   #tenta cancelar a reserva
-        db.update_money(user_id, db.property_value(property_id), False) #se foi cancelado, retorna o valor
+        retrieve_money(user_id, db.property_value(property_id) * get_days(data[3], data[4]), False, data[0]) #se foi cancelado, retorna o valor
     except Exception as e:
         raise HTTPException(status_code=500, detail="Server could not erase reservation")
     finally: 
@@ -99,9 +105,9 @@ def getReserves (userId):
 def find_property(address):
     return db.find_property(address)
     
-def create_property (address, contact, property_name, value_per_day):
+def create_property (address, contact, property_name, value_per_day, capacity):
     try:
-        db.create_property(address, contact, property_name, value_per_day)
+        db.create_property(address, contact, property_name, value_per_day, capacity)
     except Exception as e:
         raise HTTPException(status_code=500, detail="Erro ao criar propriedade no banco")
     finally:
@@ -115,9 +121,8 @@ def delete_property (property_id):
     finally:
         return {"message": "Propriedade deletada com sucesso!"}
 
-def update_property (address, values):
+def update_property (id, values):
     try:
-        id = find_property(address)
         query, statement = convert_update_model_requisitos(id, values)
         db.update_property(id, statement, query)
     except Exception as e:

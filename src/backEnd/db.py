@@ -44,7 +44,7 @@ def update_money(renter_id, amount, withdraw, reserve_id):
         else:
             cursor.execute(
                 "UPDATE client SET wallet = wallet + %s WHERE id = %s",
-                (amount, renter_id, amount)
+                (amount, renter_id)
             )
 
         rows_affected = cursor.rowcount
@@ -53,6 +53,7 @@ def update_money(renter_id, amount, withdraw, reserve_id):
         if rows_affected == 0:
             conn.rollback()
             raise
+
         query = """
         INSERT INTO payments (value, renter_id, reserve_id)
         VALUES (%s, %s, %s)
@@ -63,7 +64,8 @@ def update_money(renter_id, amount, withdraw, reserve_id):
     except db_driver.Error as e:
         if conn:
             conn.rollback()
-        raise
+        print (f"O ERRO FOI: {e}")
+        raise HTTPException(status_code=403, detail="Saldo insuficiente!")
     finally:
         abolish_connection(conn, cursor)
 
@@ -92,7 +94,7 @@ def verify_availability_lock(conn, property_id, initTime, endTime):
 
     except db_driver.Error as e:
         print(f"Erro ao verificar disponibilidade de reserva no banco de dados: {e}")
-        raise
+        raise HTTPException(status_code=500, detail="Erro ao verificar disponibilidade")
 
     finally:
         if cursor:
@@ -117,7 +119,7 @@ def make_reservation(conn, user_id, property_id, initTime, endTime):
         new_reservation_id = cursor.lastrowid
     except db_driver.Error as e:
         print(f"Erro ao inserir reserva no banco de dados: {e}")
-        raise
+        raise HTTPException(status_code=500, detail="Erro ao criar reserva")
     finally:
         if cursor:
             cursor.close()
@@ -143,6 +145,24 @@ def delete_reservation(user_id, property_id, initTime):
     finally:
         abolish_connection(conn, cursor)
 
+def getReserve (userId, property_id, initTime):
+    try:
+        conn, cursor = estabilish_connection()
+
+        cursor.execute(
+            "SELECT * FROM property_reserves WHERE renter_id = %d AND property_id = %d AND initTime = %s",
+            (userId, property_id, initTime)
+        )
+
+        value = cursor.fetchone()
+        return value
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail="Erro ao buscar dados da reserva")
+    finally:
+        abolish_connection()
+
 ###---------------------------------------------------------------------------------------
 ###     PROPRIEDADE
 ###---------------------------------------------------------------------------------------
@@ -153,10 +173,13 @@ def property_value(property_id):
 
         cursor.execute(
             "SELECT value_per_day FROM property WHERE id = %s",
-            (property_id)
+            (property_id,)
         )
 
-        value = cursor.fetchone()
+        row = cursor.fetchone()
+        value = row[0] if isinstance(row, (tuple, list)) else row
+
+        return int (value)
 
     except db_driver.Error as e:
         if conn:
@@ -232,28 +255,28 @@ def delete_property(property_id):
     finally:
         abolish_connection(conn, cursor)
 
-def update_property(property_id, data):
+def update_property(property_id, statements, values):
     try:
         conn, cursor = estabilish_connection()
 
-        # transforma o modelo Pydantic em dict
-        fields = data.dict()
+        # # transforma o modelo Pydantic em dict
+        # fields = data.dict()
 
-        # filtra somente campos enviados
-        fields = {k: v for k, v in fields.items() if v is not None}
+        # # filtra somente campos enviados
+        # fields = {k: v for k, v in fields.items() if v is not None}
 
-        if not fields:
-            raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
+        # if not fields:
+        #     raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
 
-        # monta SET dinamicamente
-        set_clause = ", ".join(f"{col} = %s" for col in fields.keys())
+        # # monta SET dinamicamente
+        # set_clause = ", ".join(f"{col} = %s" for col in fields.keys())
 
-        values = list(fields.values())
-        values.append(property_id)  # ID vai no WHERE
+        # values = list(fields.values())
+        # values.append(property_id)  # ID vai no WHERE
 
         sql = f"""
             UPDATE property
-            SET {set_clause}
+            SET {statements}
             WHERE id = %s
         """
 
@@ -432,8 +455,7 @@ def validarLogin(data: Model.Login):
 
 def cadastrarUsuario(data: Model.ClientCreate):
 
-        conn = get_connection()
-        cursor = conn.cursor()
+        conn, cursor = estabilish_connection()
 
         cursor.execute(
                 """
@@ -447,8 +469,7 @@ def cadastrarUsuario(data: Model.ClientCreate):
 
         novo_id = cursor.lastrowid
 
-        cursor.close()
-        conn.close()
+        abolish_connection()
 
         return {"mensagem": "Usuário criado com sucesso!", "id": novo_id}
 
