@@ -32,10 +32,9 @@ def abolish_connection(conn, cursor=None):
 ###     MANIPULACAO DE DINHEIRO
 ###---------------------------------------------------------------------------------------
 
-def update_money(renter_id, amount, withdraw, reserve_id):
+def update_money(conn, renter_id, amount, withdraw, reserve_id):
+    cursor = conn.cursor()
     try:
-        conn, cursor = estabilish_connection()
-        
         if withdraw:
             cursor.execute(
                 "UPDATE client SET wallet = wallet - %s WHERE id = %s AND wallet >= %s",
@@ -47,27 +46,35 @@ def update_money(renter_id, amount, withdraw, reserve_id):
                 (amount, renter_id)
             )
 
-        rows_affected = cursor.rowcount
-        if withdraw:
-            amount = - amount
-        if rows_affected == 0:
-            conn.rollback()
-            raise
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=403, detail="Saldo insuficiente!")
+
+        value = -amount if withdraw else amount
 
         query = """
         INSERT INTO payments (value, renter_id, reserve_id)
         VALUES (%s, %s, %s)
         """
-        cursor.execute(query, (amount, renter_id, reserve_id))
+        cursor.execute(query, (value, renter_id, reserve_id))
         
-        conn.commit()
     except db_driver.Error as e:
         if conn:
             conn.rollback()
-        print (f"O ERRO FOI: {e}")
-        raise HTTPException(status_code=403, detail="Saldo insuficiente!")
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail="Erro desconhecido durante transação!")
     finally:
-        abolish_connection(conn, cursor)
+        cursor.close()
+
+def instante_update_money(renter_id, amount, withdraw, reserve_id):
+    try:
+        conn = get_connection()
+        update_money(conn, renter_id, amount, withdraw, reserve_id)
+        conn.commit()
+    except Exception as e:
+        raise e
+    finally:
+        conn.close()
 
 
 ###---------------------------------------------------------------------------------------
@@ -125,13 +132,13 @@ def make_reservation(conn, user_id, property_id, initTime, endTime):
             cursor.close()
         return new_reservation_id
     
-def delete_reservation(user_id, property_id, initTime):
+def delete_reservation(id):
     try:
         conn, cursor = estabilish_connection()
 
         cursor.execute(
-            "DELETE FROM property_reserves WHERE property_id = %s AND renter_id = %s AND initTime = %s",
-            (property_id, user_id, initTime)
+            "DELETE FROM property_reserves WHERE id = %s",
+            (id,)
         )
 
         conn.commit()
@@ -145,13 +152,13 @@ def delete_reservation(user_id, property_id, initTime):
     finally:
         abolish_connection(conn, cursor)
 
-def getReserve (userId, property_id, initTime):
+def getReserve (id):
     try:
         conn, cursor = estabilish_connection()
 
         cursor.execute(
-            "SELECT * FROM property_reserves WHERE renter_id = %d AND property_id = %d AND initTime = %s",
-            (userId, property_id, initTime)
+            "SELECT * FROM property_reserves WHERE id = %s",
+            (id,)
         )
 
         value = cursor.fetchone()
@@ -161,7 +168,7 @@ def getReserve (userId, property_id, initTime):
             conn.rollback()
         raise HTTPException(status_code=500, detail="Erro ao buscar dados da reserva")
     finally:
-        abolish_connection()
+        abolish_connection(conn, cursor)
 
 ###---------------------------------------------------------------------------------------
 ###     PROPRIEDADE
@@ -544,8 +551,7 @@ def getMyReserves(renter_id: int):
             "renter_id": r[1],
             "property_id": r[2],
             "initTime": r[3],
-            "endTime": r[4],
-            "capacity": r[5],
+            "endTime": r[4]
         }
         for r in reservas
     ]

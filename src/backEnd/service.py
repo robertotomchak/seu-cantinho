@@ -29,12 +29,20 @@ def convert_update_model_requisitos(id, values):
 ###     PAGAMENTOS
 ###---------------------------------------------------------------------------------------
 
-def pay_up (user_id, amount, reservation_id):
-    db.update_money(user_id, amount, True, reservation_id)
+def pay_up (conn, user_id, amount, reservation_id):
+    db.update_money(conn, user_id, amount, True, reservation_id)
     return {"message": "Pagamento realizado com sucesso!"}
 
-def retrieve_money (user_id, amount, reservation_id):
-    db.update_money(user_id, amount, False, reservation_id)
+def instant_pay_up(user_id, amount, reservation_id):
+    db.instante_update_money(user_id, amount, True, reservation_id)
+    return {"message": "Pagamento realizado com sucesso!"}
+
+def retrieve_money (conn, user_id, amount, reservation_id):
+    db.update_money(conn, user_id, amount, False, reservation_id)
+    return {"message": "Extorno realizado com sucesso!"}
+
+def instant_retrieve_money (user_id, amount, reservation_id):
+    db.instante_update_money(user_id, amount, False, reservation_id)
     return {"message": "Extorno realizado com sucesso!"}
 
 ###---------------------------------------------------------------------------------------
@@ -66,7 +74,7 @@ def make_reserve (user_id, property_id, initTime, endTime):
         
         reservation_id = db.make_reservation(conn, user_id, property_id, initTime, endTime) #realiza a reserva
 
-        pay_up(user_id, get_days(initTime, endTime) * db.property_value(property_id), reservation_id)   #tenta realizar o pagamento
+        pay_up(conn, user_id, get_days(initTime, endTime) * db.property_value(property_id), reservation_id)   #tenta realizar o pagamento
         
         conn.commit()
         return {"message": "Reserva criada com sucesso!", "reservation_id": reservation_id}
@@ -85,15 +93,16 @@ def make_reserve (user_id, property_id, initTime, endTime):
         if conn:
             conn.close()
 
-def delete_reserve (user_id, property_id, initTime):
+def delete_reserve (reserva_id):
     try:
-        data = db.getReserve(user_id, property_id, initTime)
-        db.delete_reservation(user_id, property_id, initTime)   #tenta cancelar a reserva
-        retrieve_money(user_id, db.property_value(property_id) * get_days(data[3], data[4]), False, data[0]) #se foi cancelado, retorna o valor
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Server could not erase reservation")
-    finally: 
+        data = db.getReserve(reserva_id)
+        db.delete_reservation(reserva_id)   #tenta cancelar a reserva
+        instant_retrieve_money(data[1], db.property_value(data[2]) * get_days(data[3], data[4]), data[0]) #se foi cancelado, retorna o valor
         return {"message": "Reserva deletada com sucesso!"}
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail="Server could not erase reservation")
     
 def getReserves (userId):
     return db.getMyReserves(userId)
