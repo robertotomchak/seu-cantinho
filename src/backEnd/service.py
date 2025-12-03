@@ -96,8 +96,10 @@ def make_reserve (user_id, property_id, initTime, endTime):
 def delete_reserve (reserva_id):
     try:
         data = db.getReserve(reserva_id)
+        print ("BUSCA FOI")
         db.delete_reservation(reserva_id)   #tenta cancelar a reserva
-        instant_retrieve_money(data[1], db.property_value(data[2]) * get_days(data[3], data[4]), data[0]) #se foi cancelado, retorna o valor
+        print ("DELECAO EM SI FOI")
+        instant_retrieve_money(data[1], db.property_value(data[2]) * get_days(data[3], data[4]), reservation_id=None) #se foi cancelado, retorna o valor
         return {"message": "Reserva deletada com sucesso!"}
     except Exception as e:
         if isinstance(e, HTTPException):

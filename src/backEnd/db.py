@@ -72,7 +72,7 @@ def instante_update_money(renter_id, amount, withdraw, reserve_id):
         update_money(conn, renter_id, amount, withdraw, reserve_id)
         conn.commit()
     except Exception as e:
-        raise e
+        raise HTTPException(status_code=500, detail="Erro na manipulação da carteira!")
     finally:
         conn.close()
 

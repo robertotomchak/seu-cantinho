@@ -36,9 +36,10 @@ CREATE TABLE IF NOT EXISTS payments(
         id INT AUTO_INCREMENT PRIMARY KEY,
         value INT NOT NULL,
         renter_id INT NOT NULL,
-        reserve_id INT NOT NULL,
+        reserve_id INT,
         FOREIGN KEY (renter_id) REFERENCES client(id),
         FOREIGN KEY (reserve_id) REFERENCES property_reserves(id)
+        ON DELETE SET NULL
 );
 
 INSERT INTO client (email, password, CPF, numeroTel, nome, isAdmin, filial, wallet) 
