@@ -93,6 +93,24 @@ def instante_update_money(renter_id, amount, withdraw, reserve_id):
     finally:
         conn.close()
 
+def payment_history(user_id):
+    try:
+        conn, cursor = estabilish_connection()
+
+        cursor.execute(
+            "SELECT * FROM payments WHERE renter_id = %s",
+            (user_id,)
+        )
+
+        cursor.commit()
+
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail="Erro ao achar histórico de pagamento do usuário!")
+    finally:
+        abolish_connection(conn, cursor)
+
 
 ###---------------------------------------------------------------------------------------
 ###     ALUGUEL

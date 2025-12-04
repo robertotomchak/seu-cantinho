@@ -90,6 +90,9 @@ def instant_retrieve_money (user_id, amount, reservation_id):
     db.instante_update_money(user_id, amount, False, reservation_id)
     return {"message": "Extorno realizado com sucesso!"}
 
+def payment_history(user_id):
+    return db.payment_history(user_id)
+
 ###---------------------------------------------------------------------------------------
 ###     RESERVAS
 ###---------------------------------------------------------------------------------------
@@ -147,7 +150,7 @@ def delete_reserve (reserva_id):
         conn = get_connection()
         retrieve_money(conn, data[1], property_value * duration, data[0]) #se foi cancelado, retorna o valor
         db.delete_reservation(conn, reserva_id)   #tenta cancelar a reserva
-        
+
         conn.commit()
         return {"message": "Reserva deletada com sucesso!"}
     except Exception as e:
