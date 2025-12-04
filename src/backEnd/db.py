@@ -1,3 +1,8 @@
+"""
+    Camada Repository
+    Recebe requisções do Controller, acessa banco de dados
+"""
+
 import mysql.connector as db_driver
 import src.backEnd.models as Model
 from fastapi import FastAPI, HTTPException
@@ -6,6 +11,7 @@ from fastapi import FastAPI, HTTPException
 ###     CONEXAO AO BANCO
 ###---------------------------------------------------------------------------------------
 
+# cria uma conexão admin no banco
 def get_connection():
     return db_driver.connect(
         host="bd",
@@ -15,12 +21,14 @@ def get_connection():
         port=3306
     )
 
+# estabelece uma conexão admin no banco
 def estabilish_connection():
     conn = get_connection()
     cursor = conn.cursor()
 
     return conn, cursor
 
+# encerra uma conexão no banco
 def abolish_connection(conn, cursor=None):
     if cursor:
         cursor.close()
@@ -32,6 +40,8 @@ def abolish_connection(conn, cursor=None):
 ###     MANIPULACAO DE DINHEIRO
 ###---------------------------------------------------------------------------------------
 
+# atualiza valor na carteira do cliente, com base na quantidade adicionada/retirada
+# OBS: recebe conexão como argumento
 def update_money(conn, renter_id, amount, withdraw, reserve_id):
     cursor = conn.cursor()
     try:
@@ -66,6 +76,8 @@ def update_money(conn, renter_id, amount, withdraw, reserve_id):
     finally:
         cursor.close()
 
+# atualiza valor na carteira do cliente
+# OBS: cria a conexão
 def instante_update_money(renter_id, amount, withdraw, reserve_id):
     try:
         conn = get_connection()
@@ -81,6 +93,7 @@ def instante_update_money(renter_id, amount, withdraw, reserve_id):
 ###     ALUGUEL
 ###---------------------------------------------------------------------------------------
 
+# verifica disponibilidade de uma reserva, usando lock
 def verify_availability_lock(conn, property_id, initTime, endTime):
     try:
         cursor = conn.cursor()
@@ -112,6 +125,7 @@ def verify_availability_lock(conn, property_id, initTime, endTime):
     
     return None
     
+# realiza uma reserva no banco
 def make_reservation(conn, user_id, property_id, initTime, endTime):
     try:
         cursor = conn.cursor()
@@ -150,6 +164,7 @@ def delete_reservation(conn, id):
     finally:
         cursor.close()
 
+# retorna uma reserva, com base no seu id
 def getReserve (id):
     try:
         conn, cursor = estabilish_connection()
@@ -172,6 +187,7 @@ def getReserve (id):
 ###     PROPRIEDADE
 ###---------------------------------------------------------------------------------------
 
+# retorna o valor de uma propriedade, com base no seu id
 def property_value(property_id):
     try:
         conn, cursor = estabilish_connection()
@@ -195,6 +211,7 @@ def property_value(property_id):
         abolish_connection(conn, cursor)
         return value 
     
+# busca uma propriedade, com base no seu endereço
 def find_property(address):
     try:
         conn, cursor = estabilish_connection()
@@ -217,6 +234,7 @@ def find_property(address):
     return value
         
 
+# cria uma propriedade no banco
 def create_property(address, contact, property_name, value_per_day, capacity):
     try:
         conn, cursor = estabilish_connection()
@@ -240,7 +258,7 @@ def create_property(address, contact, property_name, value_per_day, capacity):
         abolish_connection(conn, cursor)
         
         
-    
+# deleta uma propriedade, com base no seu id
 def delete_property(property_id):
     try:
         conn, cursor = estabilish_connection()
@@ -260,6 +278,7 @@ def delete_property(property_id):
     finally:
         abolish_connection(conn, cursor)
 
+# atualiza alguns campos de uma propriedade, com base no seu id
 def update_property(property_id, statements, values):
     try:
         conn, cursor = estabilish_connection()
@@ -302,6 +321,8 @@ def update_property(property_id, statements, values):
     finally:
         abolish_connection(conn, cursor)
 
+# retorna todas as propriedades presentes no bd
+# cada propriedade está no formato de um dicionário
 def getPropertiesDB():
 
     try:
@@ -340,6 +361,7 @@ def getPropertiesDB():
 ###     USUÁRIO
 ###---------------------------------------------------------------------------------------
 
+# busca um cliente, com base no seu cpf
 def find_client(cpf):
     try:
         conn, cursor = estabilish_connection()
@@ -361,6 +383,7 @@ def find_client(cpf):
     
     return value
 
+# cria um cliente no banco de dados
 def create_client(email, password, cpf, numeroTel, nome, isAdmin, filial, wallet):
     try:
         conn, cursor = get_connection()
@@ -378,6 +401,7 @@ def create_client(email, password, cpf, numeroTel, nome, isAdmin, filial, wallet
     finally:
         abolish_connection(conn, cursor)
 
+# atualiza alguns dados do cliente, com base no seu id
 def update_client(client_id, statements, values):
     try:
         conn, cursor = estabilish_connection()
@@ -405,6 +429,7 @@ def update_client(client_id, statements, values):
     finally:
         abolish_connection(conn, cursor)
 
+# deleta um cliente, com base no seu id
 def delete_client(client_id):
     try:
         conn, cursor = estabilish_connection()
@@ -427,6 +452,7 @@ def delete_client(client_id):
 ###     LOGIN/CADASTRO
 ###---------------------------------------------------------------------------------------
 
+# valida o login de um usuário, retornando os dados do cliente se tudo for OK
 def validarLogin(data: Model.Login):
     
         try:
@@ -458,6 +484,7 @@ def validarLogin(data: Model.Login):
                 raise e
             raise HTTPException(status_code=500, detail="Erro desconhecido no servidor!")
 
+# cadastra um usuário no banco de dados
 def cadastrarUsuario(data: Model.ClientCreate):
 
         conn, cursor = estabilish_connection()
@@ -483,6 +510,7 @@ def cadastrarUsuario(data: Model.ClientCreate):
 ###     RESERVAS
 ###---------------------------------------------------------------------------------------
 
+# cria uma reserva no banco de dados
 def createReserve(data: Model.PropertyReserveCreate):
     try:
         # Conexão com o banco
@@ -535,6 +563,7 @@ def createReserve(data: Model.PropertyReserveCreate):
     finally:
         abolish_connection(conn, cursor)
 
+# retorna todas as reservas de um cliente, com base no id dele
 def getMyReserves(renter_id: int):
     conn, cursor = estabilish_connection()
     cursor.execute(
@@ -554,6 +583,7 @@ def getMyReserves(renter_id: int):
         for r in reservas
     ]
 
+# deleta uma reserva, com base no seu id
 def delete_reserva(reserva_id: int):
     try:
         conn, cursor = estabilish_connection()

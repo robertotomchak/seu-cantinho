@@ -1,3 +1,9 @@
+"""
+    Camada Service
+    Envia informações para o Controller, chama camada de repositório para obter dados
+    OBS: Regras de negócio podem ser vistas na documentação de cada função
+"""
+
 from fastapi import FastAPI, HTTPException
 from src.backEnd.db import get_connection 
 import src.backEnd.db as db
@@ -7,6 +13,8 @@ from datetime import datetime
 ###---------------------------------------------------------------------------------------
 ###     UTILS
 ###---------------------------------------------------------------------------------------
+
+# função auxiliar para atualizações parciais (PUT)
 def convert_update_model_requisitos(id, values):
     # dicionário sem None's
     updates = values.model_dump(exclude_none=True)
@@ -25,30 +33,7 @@ def convert_update_model_requisitos(id, values):
 
     return query_values, set_statement
 
-###---------------------------------------------------------------------------------------
-###     PAGAMENTOS
-###---------------------------------------------------------------------------------------
-
-def pay_up (conn, user_id, amount, reservation_id):
-    db.update_money(conn, user_id, amount, True, reservation_id)
-    return {"message": "Pagamento realizado com sucesso!"}
-
-def instant_pay_up(user_id, amount, reservation_id):
-    db.instante_update_money(user_id, amount, True, reservation_id)
-    return {"message": "Pagamento realizado com sucesso!"}
-
-def retrieve_money (conn, user_id, amount, reservation_id):
-    db.update_money(conn, user_id, amount, False, reservation_id)
-    return {"message": "Extorno realizado com sucesso!"}
-
-def instant_retrieve_money (user_id, amount, reservation_id):
-    db.instante_update_money(user_id, amount, False, reservation_id)
-    return {"message": "Extorno realizado com sucesso!"}
-
-###---------------------------------------------------------------------------------------
-###     RESERVAS
-###---------------------------------------------------------------------------------------
-
+# retorna quantos dias tem entre duas datas
 def get_days (initTime, endTime):
     DATE_FORMAT = "%Y-%m-%d"
 
@@ -57,6 +42,42 @@ def get_days (initTime, endTime):
     duration = endTime - initTime
     return duration.days
 
+###---------------------------------------------------------------------------------------
+###     PAGAMENTOS
+###---------------------------------------------------------------------------------------
+
+# realiza o pagamento de uma reserva
+# OBS: passa conexão como argumento para o Repository
+def pay_up (conn, user_id, amount, reservation_id):
+    db.update_money(conn, user_id, amount, True, reservation_id)
+    return {"message": "Pagamento realizado com sucesso!"}
+
+# realiza o pagamento de uma reserva
+# OBS: não cria uma conexão, passando essa responsabilidade para o Repository
+def instant_pay_up(user_id, amount, reservation_id):
+    db.instante_update_money(user_id, amount, True, reservation_id)
+    return {"message": "Pagamento realizado com sucesso!"}
+
+# realiza o extorno de uma reserva
+# OBS: passa conexão como argumento para o Repository
+def retrieve_money (conn, user_id, amount, reservation_id):
+    db.update_money(conn, user_id, amount, False, reservation_id)
+    return {"message": "Extorno realizado com sucesso!"}
+
+# realiza o extorno de uma reserva
+# OBS: não cria uma conexão, passando essa responsabilidade para o Repository
+def instant_retrieve_money (user_id, amount, reservation_id):
+    db.instante_update_money(user_id, amount, False, reservation_id)
+    return {"message": "Extorno realizado com sucesso!"}
+
+###---------------------------------------------------------------------------------------
+###     RESERVAS
+###---------------------------------------------------------------------------------------
+
+# realiza uma reserva
+# REGRAS DE NEGÓCIO: 
+# 1. período de estadia deve ser válido (dia fim após dia começo)
+# 2. pagamento é feito automaticamente
 def make_reserve (user_id, property_id, initTime, endTime):
     conn = get_connection()
     conn.autocommit = False
@@ -93,6 +114,9 @@ def make_reserve (user_id, property_id, initTime, endTime):
         if conn:
             conn.close()
 
+# deleta uma reserva
+# REGRAS DE NEGÓCIO:
+# 1. o registro do pagamento é mantido no banco de dados
 def delete_reserve (reserva_id):
     try:
         data = db.getReserve(reserva_id)
@@ -117,9 +141,11 @@ def getReserves (userId):
 ###     PROPRIEDADES
 ###---------------------------------------------------------------------------------------
     
+# encontra uma propriedade, com base no seu endereço
 def find_property(address):
     return db.find_property(address)
     
+# adiciona uma propriedade no sistema
 def create_property (address, contact, property_name, value_per_day, capacity):
     try:
         db.create_property(address, contact, property_name, value_per_day, capacity)
@@ -128,6 +154,7 @@ def create_property (address, contact, property_name, value_per_day, capacity):
     finally:
         return {"message": "Propriedade registrada com sucesso!"}
     
+# deleta uma propriedade, com base no seu id
 def delete_property (property_id):
     try:
         db.delete_property(property_id)
@@ -136,6 +163,7 @@ def delete_property (property_id):
     finally:
         return {"message": "Propriedade deletada com sucesso!"}
 
+# atualiza alguns campos de uma propriedade, com base no seu id
 def update_property (id, values):
     try:
         query, statement = convert_update_model_requisitos(id, values)
@@ -147,13 +175,19 @@ def update_property (id, values):
     finally:
         return {"message": "Propriedade atualizada com sucesso!"}
     
+# retorna todas as propriedades presentes no sistema
+def getProperties():
+    return db.getPropertiesDB()
+    
 ###---------------------------------------------------------------------------------------
 ###     CLIENTES
 ###---------------------------------------------------------------------------------------
 
+# encontra um cliente, com base no seu cpf
 def find_cpf(cpf):
     return db.find_client(cpf)
     
+# cria um cliente no sistema
 def create_client (email, password, cpf, numeroTel, nome, isAdmin, filial, wallet):
     try:
         db.create_client(email, password, cpf, numeroTel, nome, isAdmin, filial, wallet)
@@ -162,6 +196,7 @@ def create_client (email, password, cpf, numeroTel, nome, isAdmin, filial, walle
     finally:
         return {"message": "Cliente registrado com sucesso!"}
     
+# deleta um cliente, com base no seu id
 def delete_client (client_id):
     try:
         db.delete_client(client_id)
@@ -170,6 +205,7 @@ def delete_client (client_id):
     finally:
         return {"message": "Cliente deletado com sucesso!"}
 
+# atualiza alguns campos de um cliente, com base no seu cpf
 def update_client (cpf, values):
     try:
         id = find_cpf(cpf)
@@ -186,11 +222,10 @@ def update_client (cpf, values):
 ###     LOGIN
 ###---------------------------------------------------------------------------------------
 
+# valida um login
 def validarLogin(data):
     return db.validarLogin(data)
 
+# cadastra um usuário
 def cadastrarUsuario(data):
     return db.cadastrarUsuario(data)
-
-def getProperties():
-    return db.getPropertiesDB()
