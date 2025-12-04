@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException
 from src.backEnd.db import get_connection 
 import src.backEnd.db as db
 import src.backEnd.models as Model
-from datetime import datetime
+from datetime import datetime, date
 
 ###---------------------------------------------------------------------------------------
 ###     UTILS
@@ -33,12 +33,30 @@ def convert_update_model_requisitos(id, values):
 
     return query_values, set_statement
 
+def normalize_date(v) -> date:
+    DATE_FORMAT = "%Y-%m-%d"
+
+    if isinstance(v, date) and not isinstance(v, datetime):
+        return v
+    
+    if isinstance(v, datetime):
+        return v.date()
+    
+    if isinstance(v, str):
+        # tenta formatos com e sem hora
+        try:
+            return datetime.strptime(v, DATE_FORMAT).date()
+        except ValueError:
+            # tenta ISO datetime completo
+            return datetime.fromisoformat(v).date()
+    raise ValueError("Formato de data inválido")
+
 # retorna quantos dias tem entre duas datas
 def get_days (initTime, endTime):
     DATE_FORMAT = "%Y-%m-%d"
 
-    initTime = datetime.strptime(initTime, DATE_FORMAT).date()
-    endTime = datetime.strptime(endTime, DATE_FORMAT).date()
+    initTime = normalize_date(initTime)
+    endTime = normalize_date(endTime)
     duration = endTime - initTime
     return duration.days
 
@@ -61,6 +79,8 @@ def instant_pay_up(user_id, amount, reservation_id):
 # realiza o extorno de uma reserva
 # OBS: passa conexão como argumento para o Repository
 def retrieve_money (conn, user_id, amount, reservation_id):
+    print ("DO NADA TA")
+    print("DEBUG: entered retrieve_money with", user_id, amount, reservation_id)
     db.update_money(conn, user_id, amount, False, reservation_id)
     return {"message": "Extorno realizado com sucesso!"}
 
@@ -120,11 +140,14 @@ def make_reserve (user_id, property_id, initTime, endTime):
 def delete_reserve (reserva_id):
     try:
         data = db.getReserve(reserva_id)
+
+        property_value = db.property_value(data[2])
+        duration = get_days(data[3], data[4])
+        
         conn = get_connection()
-        print ("BUSCA FOI")
+        retrieve_money(conn, data[1], property_value * duration, data[0]) #se foi cancelado, retorna o valor
         db.delete_reservation(conn, reserva_id)   #tenta cancelar a reserva
-        print ("DELECAO EM SI FOI")
-        retrieve_money(conn, data[1], db.property_value(data[2]) * get_days(data[3], data[4]), reservation_id=None) #se foi cancelado, retorna o valor
+        
         conn.commit()
         return {"message": "Reserva deletada com sucesso!"}
     except Exception as e:

@@ -28,8 +28,9 @@ CREATE TABLE IF NOT EXISTS property_reserves(
         property_id INT NOT NULL,
         initTime TIMESTAMP NOT NULL,
         endTime TIMESTAMP NOT NULL,
-        FOREIGN KEY (renter_id) REFERENCES client(id),
+        FOREIGN KEY (renter_id) REFERENCES client(id) ON DELETE CASCADE,
         FOREIGN KEY (property_id) REFERENCES property(id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS payments(
@@ -37,7 +38,7 @@ CREATE TABLE IF NOT EXISTS payments(
         value INT NOT NULL,
         renter_id INT NOT NULL,
         reserve_id INT,
-        FOREIGN KEY (renter_id) REFERENCES client(id),
+        FOREIGN KEY (renter_id) REFERENCES client(id) ON DELETE CASCADE,
         FOREIGN KEY (reserve_id) REFERENCES property_reserves(id)
         ON DELETE SET NULL
 );

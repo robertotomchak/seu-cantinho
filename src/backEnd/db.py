@@ -43,8 +43,11 @@ def abolish_connection(conn, cursor=None):
 # atualiza valor na carteira do cliente, com base na quantidade adicionada/retirada
 # OBS: recebe conexão como argumento
 def update_money(conn, renter_id, amount, withdraw, reserve_id):
+    print("DEBUG: entered update_money_on_conn with", renter_id, amount, withdraw, reserve_id)
+
     cursor = conn.cursor()
     try:
+        print ("misericordia")
         if withdraw:
             cursor.execute(
                 "UPDATE client SET wallet = wallet - %s WHERE id = %s AND wallet >= %s",
@@ -56,6 +59,7 @@ def update_money(conn, renter_id, amount, withdraw, reserve_id):
                 (amount, renter_id)
             )
 
+        print ("cheguei aqui")
         if cursor.rowcount == 0:
             raise HTTPException(status_code=403, detail="Saldo insuficiente!")
 
@@ -65,8 +69,9 @@ def update_money(conn, renter_id, amount, withdraw, reserve_id):
         INSERT INTO payments (value, renter_id, reserve_id)
         VALUES (%s, %s, %s)
         """
+        print("CHEGUEI AQUI 2")
         cursor.execute(query, (value, renter_id, reserve_id))
-        
+        print ("UEEEEEEEE")
     except db_driver.Error as e:
         if conn:
             conn.rollback()
