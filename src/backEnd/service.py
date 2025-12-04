@@ -244,6 +244,9 @@ def update_client (cpf, values):
     finally:
         return {"message": "Cliente atualizado com sucesso!"}
 
+def credit_score(user_id):
+    return db.get_credit_score(user_id)
+
 ###---------------------------------------------------------------------------------------
 ###     LOGIN
 ###---------------------------------------------------------------------------------------

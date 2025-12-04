@@ -97,5 +97,9 @@ def delete_reserva(reserva_id: int):
 def payment_history(user_id: int):
         return service.payment_history(user_id)
 
+@app.get("/client/wallet")
+def credit_score(user_id: int):
+        return service.credit_score(user_id)
+
 #@app.post("/reserve/update")
 #def PUTreserve(data: models.PropertyUpdate):

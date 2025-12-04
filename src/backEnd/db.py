@@ -111,7 +111,6 @@ def payment_history(user_id):
     finally:
         abolish_connection(conn, cursor)
 
-
 ###---------------------------------------------------------------------------------------
 ###     ALUGUEL
 ###---------------------------------------------------------------------------------------
@@ -471,6 +470,23 @@ def delete_client(client_id):
     finally:
         abolish_connection(conn, cursor)
 
+def get_credit_score(user_id):
+    try:
+        conn, cursor = estabilish_connection()
+
+        cursor.execute(
+            "SELECT wallet FROM client WHERE id = %s",
+            (user_id,)
+        )
+
+        cursor.fetchone()
+    except db_driver.Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail="Cliente não encontrado no banco!")
+    finally:
+        abolish_connection(conn, cursor)
+        
 ###---------------------------------------------------------------------------------------
 ###     LOGIN/CADASTRO
 ###---------------------------------------------------------------------------------------
