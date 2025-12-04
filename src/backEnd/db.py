@@ -132,16 +132,14 @@ def make_reservation(conn, user_id, property_id, initTime, endTime):
             cursor.close()
         return new_reservation_id
     
-def delete_reservation(id):
+def delete_reservation(conn, id):
     try:
-        conn, cursor = estabilish_connection()
+        cursor = conn.cursor()
 
         cursor.execute(
             "DELETE FROM property_reserves WHERE id = %s",
             (id,)
         )
-
-        conn.commit()
 
     except db_driver.Error as e:
         if conn:
@@ -150,7 +148,7 @@ def delete_reservation(id):
         raise HTTPException(status_code=404, detail="Reserva não encontrada!")
 
     finally:
-        abolish_connection(conn, cursor)
+        cursor.close()
 
 def getReserve (id):
     try:
